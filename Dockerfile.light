@@ -1,0 +1,20 @@
+FROM python:3.11-slim
+
+WORKDIR /opt/frat
+
+# Install dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgl1-mesa-glx libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY setup.py .
+COPY frat/ frat/
+COPY bin/ bin/
+COPY README.md .
+
+RUN pip install --no-cache-dir .
+
+EXPOSE 8080
+
+# Default: serve images from /data (mount your FSDB there)
+CMD ["frat", "-images", "/data/**/*.img.jpg", "-default_config", "illuminated"]
