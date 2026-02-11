@@ -59,7 +59,9 @@ class Canvaces{
             if(config.autosave_freq != 0){
                 self.autosave_interval = setInterval((function(){self.cmd_autosave();}),parseInt(1000.0/config.autosave_freq))
             }
-            self.selected_cur_page.scrollIntoView(true);
+            if(self.selected_cur_page){
+                self.selected_cur_page.scrollIntoView({behavior:'auto', block:'nearest', inline:'center'});
+            }
         }
         this.img.src = img_url;
     }
@@ -827,7 +829,8 @@ class Canvaces{
         }, false);
     }
     create_config(){
-        this.config_div.innerHTML='<table><tr><td id="user_name"></td></tr></table>'
+        let user = this.config.user || '';
+        this.config_div.innerHTML='<table><tr><td id="user_name">'+user+'</td></tr></table>'
     }
     create_navigation(){
         this.navigation_div.innerHTML="Navigation Loading";
