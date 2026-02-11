@@ -303,7 +303,6 @@ class Canvaces{
     cmd_zoomin(){
         this.config.gui_scale = Math.min(this.config.gui_scale*1.2, 4.0);
         this.update_scales();
-        //this.canvaces_div.style.zoom=Math.min(this.canvaces_div.style.zoom*1.2, 4.0);
     }
     cmd_zoomout(){
         this.config.gui_scale = Math.max(this.config.gui_scale*.8, .2);
@@ -312,6 +311,33 @@ class Canvaces{
     cmd_zoomreset(){
         this.config.gui_scale=1.0;
         this.update_scales();
+    }
+    cmd_img_zoomin(){
+        this.img_scale = Math.min((this.img_scale || 1.0) * 1.25, 4.0);
+        this.canvaces_div.style.zoom = this.img_scale;
+    }
+    cmd_img_zoomout(){
+        this.img_scale = Math.max((this.img_scale || 1.0) * 0.8, 0.25);
+        this.canvaces_div.style.zoom = this.img_scale;
+    }
+    cmd_img_zoomreset(){
+        this.img_scale = 1.0;
+        this.canvaces_div.style.zoom = this.img_scale;
+    }
+    cmd_thumb_zoomin(){
+        this.thumb_scale = Math.min((this.thumb_scale || 1.0) * 1.25, 3.0);
+        this.update_thumb_sizes();
+    }
+    cmd_thumb_zoomout(){
+        this.thumb_scale = Math.max((this.thumb_scale || 1.0) * 0.8, 0.3);
+        this.update_thumb_sizes();
+    }
+    update_thumb_sizes(){
+        let size = Math.round(90 * (this.thumb_scale || 1.0));
+        let thumbs = this.navigation_div.querySelectorAll('img');
+        for(let img of thumbs){
+            img.style.height = size + 'px';
+        }
     }
     cmd_increace_transcription_alpha(){
         this.config.transcription_alpha+=.1
@@ -738,14 +764,14 @@ class Canvaces{
         function getMousePos(evt) {
             var rect = self.cnv_interactive.getBoundingClientRect();
             var scale = parseFloat(self.canvaces_div.style.zoom);
-            if (isNaN(scale)){
+            if (isNaN(scale) || scale <= 0){
                 scale=1.0;
             }
+            // Divide by zoom scale to get actual canvas coordinates
             const res= {
-                x: (evt.clientX - rect.left),
-                y: (evt.clientY - rect.top)
+                x: (evt.clientX - rect.left) / scale,
+                y: (evt.clientY - rect.top) / scale
             };
-            //dbg_log("Returning "+JSON.stringify(res));
             return res;
         }
         this.cnv_interactive.addEventListener('mousedown', function(evt) {
@@ -830,7 +856,8 @@ class Canvaces{
     }
     create_config(){
         let user = this.config.user || '';
-        this.config_div.innerHTML='<table><tr><td id="user_name">'+user+'</td></tr></table>'
+        // Hidden user field for saving
+        this.config_div.innerHTML='<span id="user_name" style="display:none">'+user+'</span>'
     }
     create_navigation(){
         this.navigation_div.innerHTML="Navigation Loading";
