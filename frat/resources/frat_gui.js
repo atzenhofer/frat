@@ -845,16 +845,16 @@ class Canvaces{
             let tbl_nav=document.createElement("table");
             let tr_nav=document.createElement("tr");
             self.page_links=[]
-            var selected = null;
+            self.selected_cur_page = null;
             for(let page_id of xhr.response){
                 let td_page=document.createElement("td")
                 td_page.style.verticalAlign = "top";
                 let a_page=document.createElement("a")
                 a_page.href='/'+page_id+'.html'
                 if(page_id==self.page_id){
-                    selected=document.createElement("div")
+                    let selected=document.createElement("div")
                     selected.id = "selected";
-                    this.current_page_link=a_page
+                    self.selected_cur_page = td_page;
                     a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height=90px;border:5px solid '+self.config.active_page_border_color+'"/>'
                     selected.appendChild(a_page);
                     td_page.appendChild(selected);
@@ -877,6 +877,9 @@ class Canvaces{
             tbl_nav.appendChild(tr_nav)
             self.navigation_div.innerHTML='';
             self.navigation_div.appendChild(tbl_nav);
+            if(self.selected_cur_page){
+                self.selected_cur_page.scrollIntoView({behavior:'auto', block:'nearest', inline:'center'});
+            }
           } else {
             ui_warn("Reloading gt failed status:"+status+" responce:'"+xhr.response+"'");
           }
