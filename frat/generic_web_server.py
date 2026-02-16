@@ -162,19 +162,54 @@ class FratWebServer(object):
 
     def render_index(self):
         cherrypy.response.headers['Content-Type'] = "text/html"
-        res=f"<html><body><table>"
-        for n, name in sorted([(n, name) for name, n in self.image_names_to_idx.items()]):
-            res+=f'<tr><td>{n}</td><td><a href="/{name}.html"><img src="/{name}.thumb.png" loading="lazy" decoding="async"></a></td></tr>\n'
-        res+="</table></body></html>"
+        all_sorted = sorted([(n, name) for name, n in self.image_names_to_idx.items()])
+        total = len(all_sorted)
+        chunk = 250
+        res = "<html><body>"
+        if total > chunk:
+            res += "<p>Chunks: "
+            links = []
+            for i in range(0, total, chunk):
+                first_id = all_sorted[i][1]
+                a, b = i + 1, min(i + chunk, total)
+                links.append(f'<a href="/{first_id}.html?nav_offset={i}&nav_limit={chunk}">{a}\u2013{b}</a>')
+            res += " | ".join(links) + "</p>"
+        res += "<table>"
+        for n, name in all_sorted:
+            res += f'<tr><td>{n}</td><td><a href="/{name}.html"><img src="/{name}.thumb.png" loading="lazy" decoding="async"></a></td></tr>\n'
+        res += "</table></body></html>"
         return res
     def render_idlist(self):
+        # Pagination only affects which ids we return for the nav strip. Annotation load/save
+        # (render_gt, PUT) are unchanged: same paths, same format. Existing .gt.json files
+        # are never modified except by explicit save from the UI.
         cherrypy.response.headers['Content-Type'] = "application/json"
-        all_ids = [v[1] for v in sorted([(v, k) for k, v  in self.image_names_to_idx.items()])]
-        return str.encode(json.dumps(all_ids))
+        all_ids = [v[1] for v in sorted([(v, k) for k, v in self.image_names_to_idx.items()])]
+        total = len(all_ids)
+        try:
+            limit = int(cherrypy.request.params.get("limit", 0))
+        except (TypeError, ValueError):
+            limit = 0
+        if limit <= 0:
+            return str.encode(json.dumps(all_ids))
+        around_id = cherrypy.request.params.get("around")
+        if around_id and around_id in self.image_names_to_idx:
+            idx = self.image_names_to_idx[around_id]
+            offset = max(0, idx - limit // 2)
+        else:
+            try:
+                offset = int(cherrypy.request.params.get("offset", 0))
+            except (TypeError, ValueError):
+                offset = 0
+            offset = max(0, min(offset, max(0, total - limit)))
+        ids = all_ids[offset:offset + limit]
+        out = {"total": total, "offset": offset, "ids": ids}
+        return str.encode(json.dumps(out))
 
 
     @cherrypy.popargs('url_path')
-    def GET(self, url_path=""):
+    def GET(self, url_path="", **kwargs):
+        # kwargs absorb query params (e.g. nav_offset, nav_limit) so CherryPy doesn't 404
         #print("GETTING:",repr(url_path))
         page_id = url_path.split("/")[-1].split(".")[0]
         if page_id == "page_id_list":

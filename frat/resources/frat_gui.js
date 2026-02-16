@@ -22,6 +22,7 @@ class Canvaces{
         this.class_selection_ui.frat_ui=this;
         
         this.config = config;
+        this.NAV_CHUNK = 200;
         //alert("Config:"+this.config);
         var self = this;
         this.active = [];
@@ -857,6 +858,72 @@ class Canvaces{
         // Hidden user field for saving
         this.config_div.innerHTML='<span id="user_name" style="display:none">'+user+'</span>'
     }
+    build_nav_from_ids(ids, nav_offset, nav_total, nav_limit){
+        let self=this;
+        let tbl_nav=document.createElement("table");
+        let tr_nav=document.createElement("tr");
+        self.page_links=[];
+        self.selected_cur_page = null;
+        for(let page_id of ids){
+            let td_page=document.createElement("td");
+            td_page.style.verticalAlign = "top";
+            let a_page=document.createElement("a");
+            a_page.href='/'+page_id+'.html' + (nav_total != null && nav_limit != null ? '?nav_offset='+nav_offset+'&nav_limit='+nav_limit : '');
+            if(page_id==self.page_id){
+                let selected=document.createElement("div");
+                selected.id = "selected";
+                self.selected_cur_page = td_page;
+                a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height:90px;border:5px solid '+self.config.active_page_border_color+'" loading="lazy" decoding="async"/>';
+                selected.appendChild(a_page);
+                td_page.appendChild(selected);
+            }else{
+                a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height:90px;border:5px solid black" loading="lazy" decoding="async"/>';
+                td_page.appendChild(a_page);
+            }
+            tr_nav.appendChild(td_page);
+            self.page_links.push(a_page);
+        }
+        tbl_nav.appendChild(tr_nav);
+        if(nav_total != null && nav_limit != null && nav_total > nav_limit){
+            self.nav_offset = nav_offset;
+            self.nav_total = nav_total;
+            self.nav_limit = nav_limit;
+            let tr_ctl=document.createElement("tr");
+            let td_ctl=document.createElement("td");
+            td_ctl.colSpan = ids.length;
+            td_ctl.style.textAlign = "center";
+            td_ctl.style.padding = "4px";
+            let prev = document.createElement("button");
+            prev.textContent = "\u2190 Prev "+nav_limit;
+            prev.disabled = nav_offset <= 0;
+            prev.onclick = ()=>{ self.fetch_nav_window(Math.max(0, nav_offset - nav_limit)); };
+            let next = document.createElement("button");
+            next.textContent = "Next "+nav_limit+" \u2192";
+            next.disabled = nav_offset + nav_limit >= nav_total;
+            next.onclick = ()=>{ self.fetch_nav_window(nav_offset + nav_limit); };
+            td_ctl.appendChild(prev);
+            td_ctl.appendChild(document.createTextNode(" \u00a0 " + (nav_offset+1) + "\u2013" + Math.min(nav_offset+nav_limit, nav_total) + " of " + nav_total + " \u00a0 "));
+            td_ctl.appendChild(next);
+            tr_ctl.appendChild(td_ctl);
+            tbl_nav.appendChild(tr_ctl);
+        }
+        this.navigation_div.innerHTML='';
+        this.navigation_div.appendChild(tbl_nav);
+        this.scrollSelectedIntoView();
+    }
+    fetch_nav_window(offset){
+        let self=this;
+        let url = "/page_id_list.json?limit=" + (this.nav_limit || this.NAV_CHUNK) + "&offset=" + offset;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'json';
+        xhr.onload = function(){
+            if (xhr.status === 200 && xhr.response && xhr.response.ids) {
+                self.build_nav_from_ids(xhr.response.ids, xhr.response.offset, xhr.response.total, xhr.response.ids.length);
+            }
+        };
+        xhr.send();
+    }
     scrollSelectedIntoView(){
         if(!this.selected_cur_page) return;
         var opt = {behavior:'auto', block:'nearest', inline:'center'};
@@ -869,51 +936,36 @@ class Canvaces{
         this.navigation_div.innerHTML="Navigation Loading";
         var self=this;
         var xhr = new XMLHttpRequest();
-        let url="/page_id_list.json";
+        var params = new URLSearchParams(window.location.search);
+        var navOffset = params.get("nav_offset");
+        var navLimit = params.get("nav_limit");
+        let url = "/page_id_list.json";
+        if (navOffset !== null && navLimit !== null) {
+            url += "?limit=" + encodeURIComponent(navLimit) + "&offset=" + encodeURIComponent(navOffset);
+        } else {
+            url += "?limit=" + this.NAV_CHUNK + "&around=" + encodeURIComponent(this.page_id);
+        }
         xhr.open('GET', url, true);
         xhr.responseType = 'json';
         xhr.onload = function() {
           var status = xhr.status;
           if (status === 200) {
-            //callback(null, xhr.response);
             ui_warn("Reloading gt! Responce: '"+JSON.stringify(xhr.response)+"'");
-            //data=JSON.parse(xhr.response);
-            let tbl_nav=document.createElement("table");
-            let tr_nav=document.createElement("tr");
-            self.page_links=[]
-            self.selected_cur_page = null;
-            for(let page_id of xhr.response){
-                let td_page=document.createElement("td")
-                td_page.style.verticalAlign = "top";
-                let a_page=document.createElement("a")
-                a_page.href='/'+page_id+'.html'
-                if(page_id==self.page_id){
-                    let selected=document.createElement("div")
-                    selected.id = "selected";
-                    self.selected_cur_page = td_page;
-                    a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height:90px;border:5px solid '+self.config.active_page_border_color+'" loading="lazy" decoding="async"/>'
-                    selected.appendChild(a_page);
-                    td_page.appendChild(selected);
-//                    td_page.style.background = "#808080";
-//                    td_page.style.border = "thick solid #0000FF"
-                }else{
-                    //a_page.innerHTML='<img src="/'+page_id+'.thumb.png" height="100px" />'
-                    a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height=90px;border:5px solid black" loading="lazy" decoding="async"/>'
-                    td_page.appendChild(a_page);
-//                    td_page.style.background = "#D0D0D0";
-//                    td_page.style.border = "thick solid #0000FF"
-                }
-                function invert(){
-                    document.getElementById("theImage").style.filter="invert(100%)";
-                }
-
-                tr_nav.appendChild(td_page);
-                self.page_links.push(a_page);
+            var resp = xhr.response;
+            var ids, nav_offset, nav_total, nav_limit;
+            if (Array.isArray(resp)) {
+              ids = resp;
+              nav_offset = nav_total = nav_limit = null;
+            } else if (resp && resp.ids) {
+              ids = resp.ids;
+              nav_offset = resp.offset;
+              nav_total = resp.total;
+              nav_limit = resp.ids.length;
+            } else {
+              ui_warn("Reloading gt failed: unexpected response");
+              return;
             }
-            tbl_nav.appendChild(tr_nav)
-            self.navigation_div.innerHTML='';
-            self.navigation_div.appendChild(tbl_nav);
-            self.scrollSelectedIntoView();
+            self.build_nav_from_ids(ids, nav_offset, nav_total, nav_limit);
           } else {
             ui_warn("Reloading gt failed status:"+status+" responce:'"+xhr.response+"'");
           }
