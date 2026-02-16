@@ -59,9 +59,7 @@ class Canvaces{
             if(config.autosave_freq != 0){
                 self.autosave_interval = setInterval((function(){self.cmd_autosave();}),parseInt(1000.0/config.autosave_freq))
             }
-            if(self.selected_cur_page){
-                self.selected_cur_page.scrollIntoView({behavior:'auto', block:'nearest', inline:'center'});
-            }
+            self.scrollSelectedIntoView();
         }
         this.img.src = img_url;
     }
@@ -859,6 +857,14 @@ class Canvaces{
         // Hidden user field for saving
         this.config_div.innerHTML='<span id="user_name" style="display:none">'+user+'</span>'
     }
+    scrollSelectedIntoView(){
+        if(!this.selected_cur_page) return;
+        var opt = {behavior:'auto', block:'nearest', inline:'center'};
+        var img = this.selected_cur_page.querySelector('img');
+        if(!img){ this.selected_cur_page.scrollIntoView(opt); return; }
+        if(img.complete) this.selected_cur_page.scrollIntoView(opt);
+        else img.onload = ()=>{ this.selected_cur_page.scrollIntoView(opt); };
+    }
     create_navigation(){
         this.navigation_div.innerHTML="Navigation Loading";
         var self=this;
@@ -885,14 +891,14 @@ class Canvaces{
                     let selected=document.createElement("div")
                     selected.id = "selected";
                     self.selected_cur_page = td_page;
-                    a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height=90px;border:5px solid '+self.config.active_page_border_color+'"/>'
+                    a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height:90px;border:5px solid '+self.config.active_page_border_color+'" loading="lazy" decoding="async"/>'
                     selected.appendChild(a_page);
                     td_page.appendChild(selected);
 //                    td_page.style.background = "#808080";
 //                    td_page.style.border = "thick solid #0000FF"
                 }else{
                     //a_page.innerHTML='<img src="/'+page_id+'.thumb.png" height="100px" />'
-                    a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height=90px;border:5px solid black"/>'
+                    a_page.innerHTML='<img src="/'+page_id+'.thumb.png" style="height=90px;border:5px solid black" loading="lazy" decoding="async"/>'
                     td_page.appendChild(a_page);
 //                    td_page.style.background = "#D0D0D0";
 //                    td_page.style.border = "thick solid #0000FF"
@@ -907,9 +913,7 @@ class Canvaces{
             tbl_nav.appendChild(tr_nav)
             self.navigation_div.innerHTML='';
             self.navigation_div.appendChild(tbl_nav);
-            if(self.selected_cur_page){
-                self.selected_cur_page.scrollIntoView({behavior:'auto', block:'nearest', inline:'center'});
-            }
+            self.scrollSelectedIntoView();
           } else {
             ui_warn("Reloading gt failed status:"+status+" responce:'"+xhr.response+"'");
           }

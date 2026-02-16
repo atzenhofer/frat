@@ -56,16 +56,16 @@ def create_thumb(fname, format="png", width=100, height=-1):
 @cherrypy.expose
 class FratWebServer(object):
     def load_from_local_images(self, image_filenames, img2itempath_regex, gt_filextention, autogt_filextention):
-        self.thumbs = []
+        self.thumbs = [None] * len(image_filenames)  # lazy: create on first render_thumb
         self.image_names_to_idx = {}
         self.image_paths = []
         self.json_paths = []
         self.autojson_paths = []
         self.image_urls = []
-        for n, image_filename in enumerate(tqdm.tqdm(image_filenames, desc="Creating thumbs")):
-            thumb, md5id = create_thumb(image_filename)
+        for n, image_filename in enumerate(tqdm.tqdm(image_filenames, desc="Indexing images")):
+            with open(image_filename, "rb") as f:
+                md5id = hashlib.md5(f.read()).hexdigest()
             self.image_urls.append(f"{md5id}.png")
-            self.thumbs.append(thumb)
             self.image_paths.append(image_filename)
             image_base_paths = re.findall(img2itempath_regex, image_filename)
             assert len(image_base_paths) >= 1 and len(image_base_paths[0]) > 0
@@ -142,7 +142,10 @@ class FratWebServer(object):
     
     def render_thumb(self, image_id):
         cherrypy.response.headers['Content-Type'] = f"image/{self.image_web_format}"
-        return self.thumbs[self.image_names_to_idx[image_id]]
+        idx = self.image_names_to_idx[image_id]
+        if self.thumbs[idx] is None:
+            self.thumbs[idx], _ = create_thumb(self.image_paths[idx])
+        return self.thumbs[idx]
     
     def render_gt(self, image_id):
         cherrypy.response.headers['Content-Type'] = "application/json"
@@ -161,7 +164,7 @@ class FratWebServer(object):
         cherrypy.response.headers['Content-Type'] = "text/html"
         res=f"<html><body><table>"
         for n, name in sorted([(n, name) for name, n in self.image_names_to_idx.items()]):
-            res+=f'<tr><td>{n}</td><td><a href="/{name}.html"><img src="/{name}.thumb.png"></a></td></tr>\n'
+            res+=f'<tr><td>{n}</td><td><a href="/{name}.html"><img src="/{name}.thumb.png" loading="lazy" decoding="async"></a></td></tr>\n'
         res+="</table></body></html>"
         return res
     def render_idlist(self):
