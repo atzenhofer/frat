@@ -45,13 +45,14 @@
     {"name":"WrO:Chrismon","color":"#651FFF"},
     {"name":"WrO:DisplayScript","color":"#FFEA00"},
 
-    {"name":"Wr:Panel","color":"#7CFF00"},
-    {"name":"Wr:Border","color":"#00FF8A"},
-    {"name":"Wr:CoatOfArms","color":"#FF3D00"},
-    {"name":"Wr:Benevalete","color":"#FF4081"},
+    {"name":"WrO:Panel","color":"#7CFF00"},
+    {"name":"WrO:Border","color":"#00FF8A"},
+    {"name":"WrO:CoatOfArms","color":"#FF3D00"},
+    {"name":"Wr:Monogram","color":"#FF4081"},
     {"name":"Wr:Rota","color":"#00E5FF"},
     {"name":"Wr:Notarial","color":"#C6FF00"},
-    {"name":"Wr:Recognitionis","color":"#D500F9"}
+    {"name":"WrO:Recognitionis","color":"#D500F9"},
+    {"name":"Wr:Signature","color":"#E040FB"}
     ],
     "commands": [
         ["GUI++", "cmd_zoomin"], 
